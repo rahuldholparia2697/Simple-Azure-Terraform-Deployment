@@ -9,9 +9,10 @@ defaults:
     working-directory: ./Terraform-code
 
 jobs:
-  terraform:
+  plan:
     name: 'Terraform Plan'
     runs-on: self-hosted
+
     env:
       ARM_USE_MSI: true
       ARM_SUBSCRIPTION_ID: '99c0acb2-ff53-4ac2-8e99-071411ed7ee4'
@@ -33,9 +34,45 @@ jobs:
         run: terraform init
 
       - name: Terraform Plan
-        run: terraform plan -out=main.tfplan -var-file="prod.tfvars"
+        run: terraform plan -out="plan.tfplan" -var-file="prod.tfvars"
+
+      - name: Upload Plan Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tfplan
+          path: ./Terraform-code/plan.tfplan
+
+  apply:
+    runs-on: self-hosted
+    needs: plan
+    if: github.ref == 'refs/heads/master'
+    environment: production
+
+    env:
+      ARM_USE_MSI: true
+      ARM_SUBSCRIPTION_ID: '99c0acb2-ff53-4ac2-8e99-071411ed7ee4'
+      ARM_TENANT_ID: 'a19d6cd0-cccb-447a-ae75-7d3ee4eaa2bb'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          # Uses the VM's system-assigned identity to login
+          auth-type: IDENTITY
+          tenant-id: 'a19d6cd0-cccb-447a-ae75-7d3ee4eaa2bb'
+          subscription-id: '99c0acb2-ff53-4ac2-8e99-071411ed7ee4'
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Download Plan Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: tfplan
+          path: ./Terraform-code
 
       - name: Terraform Apply
-        if: github.ref == 'refs/heads/master'
-        environment: production
-        run: terraform apply -auto-approve
+        run: terraform apply plan.tfplan -auto-approve
