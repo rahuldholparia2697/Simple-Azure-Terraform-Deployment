@@ -75,4 +75,4 @@ jobs:
           path: ./Terraform-code
 
       - name: Terraform Apply
-        run: terraform apply plan.tfplan -auto-approve
+        run: terraform apply plan.tfplan
