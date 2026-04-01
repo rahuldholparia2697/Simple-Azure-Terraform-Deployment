@@ -46,7 +46,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: tfplan
-          path: ./Terraform-code/plan.tfplan
+          path: ./plan.tfplan
 
   apply:
     runs-on: self-hosted
@@ -78,7 +78,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: tfplan
-          path: ./Terraform-code
+          path: .
 
       - name: Terraform Apply
         run: terraform apply plan.tfplan
